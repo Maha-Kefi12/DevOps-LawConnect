@@ -1,0 +1,42 @@
+<div class="container">
+  <div class="form_area">
+    <p class="title">CREATE ARTICLE</p>
+    <form [formGroup]="articleForm" (ngSubmit)="onSubmit()">
+
+      <div class="form_group">
+        <label class="sub_title" for="name">Title</label>
+        <input id="name" placeholder="Enter article title" class="form_style" type="text" formControlName="name">
+      </div>
+
+      <div class="form_group">
+        <label class="sub_title" for="content">Content</label>
+        <textarea id="content" placeholder="Enter article content" class="form_style" formControlName="content"></textarea>
+      </div>
+
+      <div class="form_group">
+        <label class="sub_title" for="postedBy">Posted By</label>
+        <input id="postedBy" placeholder="Enter your name" class="form_style" type="text" formControlName="postedBy">
+      </div>
+
+
+      <div class="form_group">
+        <label class="sub_title" for="image">Upload Image</label>
+        <input type="file" id="image" (change)="onFileSelected($event)">
+        <div *ngIf="previewImageUrl">
+          <img [src]="previewImageUrl" alt="Image Preview" width="200" />
+        </div>
+      </div>
+
+      <div>
+        <button class="btn" type="submit" [disabled]="articleForm.invalid || isLoading">Submit</button>
+      </div>
+      
+    </form>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div *ngIf="isLoading" class="loading-overlay">
+  <div class="spinner"></div>
+  <p>Processing your article...</p>
+</div>

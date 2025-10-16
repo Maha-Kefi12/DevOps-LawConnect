@@ -1,0 +1,166 @@
+// Case Studies
+
+.single-case-wrapper{
+	position: relative;
+	overflow: hidden;
+	margin-bottom: 30px;
+}
+
+.case-bg{
+    transition: all .5s ease;
+    transform: scale(1);
+}
+
+.case-details {
+	position: absolute;
+	bottom: 20px;
+	left: 20px;
+	transform: translateX(-101%);
+	transition: all ease 0.3s;
+	opacity: 0;
+	visibility: hidden;
+	span {
+		background: #fff;
+		padding: 10px;
+		border-radius: 0;
+		font-size: 16px;
+		color: $theme_color;
+	}
+	
+	h5 {
+		background: #fff;
+		display: block;
+		font-weight: 500;
+		padding: 10px 20px;
+		margin: 10px 0;    
+	}
+}
+
+.single-case-wrapper:hover .case-details{
+	transform: translateX(0);
+	visibility: visible;
+	opacity: 1;
+	transition: all .7s ease;
+    transition-delay: 50ms;
+    transition-duration: .5s;
+}
+
+.single-case-wrapper:hover .case-bg{
+	transform: scale(1.07,1.07);
+}
+
+// case Slider 
+
+.case-slider .owl-nav button.owl-prev,
+.case-slider .owl-nav button.owl-next {
+  border: 1px solid #ddd;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20px;  
+}
+
+.case-slider .owl-nav button.owl-prev:hover,
+.case-slider .owl-nav button.owl-next:hover {
+  background: $theme_color;
+  border-color: $theme_color;
+  color: #fff;
+
+}
+
+.case-slider .owl-nav {
+  position: absolute;
+  bottom: -40px;
+  left: 0;
+  display: flex;
+  @media #{$md}{
+	bottom: -60px;
+  }
+  @media #{$xs}{
+	bottom: -60px;
+  }
+}
+
+.case-slider .owl-nav i {
+  font-size: 20px;
+}
+
+// Case Details 
+
+
+.case-details-content h3 {
+    font-size: 35px;
+    font-weight: 500;
+    margin: 30px 0;
+}
+
+.case-details-content p {
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+
+.case-details-inner {
+    @media #{$xs}{
+		margin-top: 60px;
+	}
+	p {
+		text-align: justify;
+	}
+}
+
+.single-details-item h5 {
+    font-weight: 500;
+}
+
+.single-details-item span {
+    font-size: 18px;
+    color: #777;
+}
+
+.case-details-info {
+    position: sticky;
+    top: 150px;
+    transition: top .3s ease;
+	h4 {
+		font-weight: 500;
+	}
+	h5{
+		font-size: 18px;
+	}
+	p {
+		font-size: 20px;
+		margin: 30px 0;
+	}
+}
+
+.case-details-wrap{
+	.nav-links {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	
+	.nav-links a {
+		font-size: 18px;
+		font-weight: 500;
+	}
+	
+	.nav-links span i {
+		font-size: 22px;
+	}
+
+	.nav-previous i{
+		margin-right: 20px;
+	}
+	.nav-next i{
+		margin-left: 20px;
+	}
+}
+
+.case-desc h3 {
+    font-size: 35px;
+    margin: 20px 0;
+}

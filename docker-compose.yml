@@ -1,0 +1,71 @@
+version: '3.3'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: lawconnect-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ""
+      MYSQL_DATABASE: springdb
+      MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - lawconnect-network
+    command: --default-authentication-plugin=mysql_native_password
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./LawConnectBackend
+      dockerfile: Dockerfile
+    container_name: lawconnect-backend
+    restart: always
+    ports:
+      - "8085:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_APPLICATION_NAME: lawconnect-backend
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/springdb?createDatabaseIfNotExist=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ""
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+      SPRING_JPA_DATABASE: mysql
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.MySQL8Dialect
+      SERVER_ERROR_WHITELABEL_ENABLED: "false"
+      JAVA_OPTS: -Xms512m -Xmx1024m
+    depends_on:
+      - mysql
+    networks:
+      - lawconnect-network
+
+  # Angular Frontend
+  frontend:
+    build:
+      context: ./lawapp
+      dockerfile: Dockerfile
+    container_name: lawconnect-frontend
+    restart: always
+    ports:
+      - "80:80"
+      - "4200:80"
+    environment:
+      API_URL: http://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - lawconnect-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  lawconnect-network:
+    driver: bridge

@@ -1,0 +1,27 @@
+# Backend
+LawConnectBackend/target/
+LawConnectBackend/*.jar
+LawConnectBackend/.mvn/
+LawConnectBackend/mvnw
+LawConnectBackend/mvnw.cmd
+
+# Frontend
+lawapp/node_modules/
+lawapp/dist/
+lawapp/.angular/
+lawapp/npm-debug.log
+lawapp/yarn-error.log
+
+# Docker
+docker-compose.override.yml
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Environment
+.env
+.env.local

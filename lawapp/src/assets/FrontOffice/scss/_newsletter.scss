@@ -1,0 +1,38 @@
+.subscribed-form {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 70%;
+    position: relative;
+    @media #{$xs} {
+        width: 100%;
+    }
+    input {
+        border: none;
+        border-bottom: 1px solid $text_dark;
+        padding: 10px 0;
+    }
+}
+
+.newsletter-two .subscribed-form input {
+    border-bottom: 1px solid $text_dark;
+}
+
+.subscribed-form .submit-btn i {
+    font-size: 24px;
+    color: $theme_color;
+}
+
+.subscribed-form input::placeholder {
+    color: #777;    
+    font-weight: 500;
+}
+
+.newsletter-two .subscribed-form input::placeholder {
+    color: $text_dark;
+}
+
+.submit-btn {
+    position: absolute;
+    right: 0;
+}

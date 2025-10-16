@@ -1,0 +1,335 @@
+<!-- blog-detail.component.html -->
+<div class="blog-detail-container">
+  <!-- Trigger Task Section -->
+  <div class="trigger-task-container">
+    <button (click)="triggerTask()" class="trigger-task-button">Trigger Task & Reset Views</button>
+    <div *ngIf="successMessage" class="success-message">{{ successMessage }}</div>
+    <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+  </div>
+
+  
+  
+
+  <!-- Article Content -->
+  <!-- Hero Banner Section -->
+  <div class="hero-banner" *ngIf="!isLoading && article">
+    <div class="overlay"></div>
+    <div class="container">
+      <div class="hero-content text-center">
+        <div class="category-badge" *ngIf="article.tags && article.tags.length > 0">
+          {{ article.tags[0] }}
+        </div>
+        <h1 class="article-title">{{ article.name }}</h1>
+        <div class="article-meta">
+          <span><i class="las la-calendar"></i> {{ article.date | date: 'longDate' }}</span>
+          <span><i class="las la-user"></i> {{ article.postedBy }}</span>
+          <span><i class="las la-eye"></i> {{ article.viewCount }} views</span>
+          <span><i class="las la-heart"></i> {{ article.likeCount }} likes</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="main-content" *ngIf="!isLoading && article; else loadingOrError">
+    <div class="container">
+      <div class="row">
+        <!-- Article Content -->
+        <div class="col-lg-8">
+          <div class="article-container">
+            <!-- Featured Image -->
+            <div class="featured-image" *ngIf="article.img">
+              <img [src]="'data:image/jpeg;base64,' + article.img" 
+                   [alt]="article.name"
+                   (error)="handleImageError($event.target)">
+            </div>
+            <!-- Placeholder for when no image is available -->
+            <div class="featured-image-placeholder" *ngIf="!article.img">
+              <div class="placeholder-content">
+                <i class="las la-image"></i>
+                <p>{{ article.name }}</p>
+              </div>
+            </div>
+
+            <!-- Article Content -->
+            <div class="article-content">
+              <p>{{ article.content }}</p>
+            </div>
+
+            <!-- Tags -->
+            <div class="tags-container" *ngIf="article.tags?.length">
+              <h4>Tags</h4>
+              <div class="tags">
+                <span class="tag" *ngFor="let tag of article.tags">{{ tag }}</span>
+              </div>
+            </div>
+
+            <!-- Article Actions -->
+            <div class="article-actions">
+              <button class="like-btn" (click)="onLikeClick(postId)">
+                <i class="las la-heart"></i>
+                <span>Like</span>
+              </button>
+
+              <button class="edit-btn" (click)="goToUpdateForm()">
+                <i class="las la-edit"></i>
+                <span>Edit</span>
+              </button>
+
+              <button class="delete-btn" (click)="deleteArticle()">
+                <i class="las la-trash"></i>
+                <span>Delete</span>
+              </button>
+            </div>
+
+            <!-- Notifications -->
+            <div class="notification success" *ngIf="successMessage && !isSubmittingComment">
+              <i class="las la-check-circle"></i>
+              <span>{{ successMessage }}</span>
+            </div>
+
+            <div class="notification error" *ngIf="errorMessage">
+              <i class="las la-exclamation-circle"></i>
+              <span>{{ errorMessage }}</span>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="comments-section">
+              <h3 class="section-title">Comments ({{ totalComments || comments.length }})</h3>
+
+              <!-- Loading indicator when comments are being fetched -->
+              <div *ngIf="isSubmittingComment" class="loading-comments">
+                <div class="spinner-container">
+                  <div class="spinner"></div>
+                </div>
+                <p>Processing your request...</p>
+              </div>
+
+              <!-- Comments List - Show when comments exist or totalComments > 0 -->
+              <ng-container *ngIf="(comments.length > 0 || totalComments > 0) && !isSubmittingComment; else noComments">
+                <div *ngIf="comments.length > 0" class="comments-list">
+                  <div class="comment" *ngFor="let comment of comments">
+                    <!-- Normal comment view (shown when not editing) -->
+                    <div *ngIf="editingCommentId !== getCommentId(comment)">
+                      <div class="comment-header">
+                        <div class="avatar">
+                          <!-- Replace image with comment author initials -->
+                          <div class="comment-initials">{{ comment.postedBy?.charAt(0) || 'U' }}</div>
+                        </div>
+                        <div class="comment-info">
+                          <h4>{{ comment.postedBy }}</h4>
+                          <p class="date">{{ comment.createdAt | date: 'MMMM d, y - h:mm a' }}</p>
+                        </div>
+                      </div>
+                      <div class="comment-content">
+                        <p>{{ comment.content }}</p>
+                      </div>
+                      <div class="comment-actions">
+                        <button class="action-btn edit" (click)="editComment(comment)" [disabled]="isSubmittingComment">
+                          <i class="las la-edit"></i> Edit
+                        </button>
+                        <button class="action-btn delete" (click)="logCommentId(comment)" [disabled]="isSubmittingComment">
+                          <i class="las la-trash"></i> Delete
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <!-- Edit form (shown when editing this comment) -->
+                    <div *ngIf="editingCommentId === getCommentId(comment)" class="edit-comment-form">
+                      <form [formGroup]="editCommentForm" (ngSubmit)="updateComment()">
+                        <div class="form-group">
+                          <label>Name</label>
+                          <input type="text" class="form-control" formControlName="postedBy">
+                          <div *ngIf="editCommentForm.get('postedBy')?.invalid && editCommentForm.get('postedBy')?.touched" 
+                              class="error-message">
+                            Name is required
+                          </div>
+                        </div>
+                        <div class="form-group">
+                          <label>Comment</label>
+                          <textarea class="form-control" formControlName="content" rows="3"></textarea>
+                          <div *ngIf="editCommentForm.get('content')?.invalid && editCommentForm.get('content')?.touched" 
+                              class="error-message">
+                            Comment must be at least 3 characters
+                          </div>
+                        </div>
+                        <div class="form-actions">
+                          <button type="submit" class="btn-update" [disabled]="editCommentForm.invalid || isSubmittingComment">
+                            <span *ngIf="isSubmittingComment" class="spinner"></span>
+                            Update
+                          </button>
+                          <button type="button" class="btn-cancel" (click)="cancelEdit()">
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- If totalComments > 0 but comments array is empty, show loading -->
+                <div *ngIf="totalComments > 0 && comments.length === 0" class="loading-more-comments">
+                  <div class="spinner-container">
+                    <div class="spinner"></div>
+                  </div>
+                  <p>Loading comments...</p>
+                </div>
+                
+                <!-- Pagination Controls -->
+                <div *ngIf="totalPages > 1" class="pagination">
+                  <button class="page-button prev" [disabled]="currentPage === 0" (click)="prevPage()">
+                    <i class="las la-angle-left"></i>
+                  </button>
+                  
+                  <button class="page-button number" *ngFor="let page of [].constructor(totalPages); let i = index" 
+                      [class.active]="i === currentPage"
+                      (click)="goToPage(i)">
+                    {{ i + 1 }}
+                  </button>
+                  
+                  <button class="page-button next" [disabled]="currentPage === totalPages - 1" (click)="nextPage()">
+                    <i class="las la-angle-right"></i>
+                  </button>
+                </div>
+              </ng-container>
+
+              <ng-template #noComments>
+                <div class="no-comments">
+                  <i class="las la-comment-slash"></i>
+                  <p>No comments yet. Be the first to comment!</p>
+                </div>
+              </ng-template>
+            </div>
+
+            <!-- Comment Form -->
+            <div class="add-comment-section">
+              <h3 class="section-title">Leave A Comment</h3>
+              <form [formGroup]="commentForm" (ngSubmit)="onSubmitComment()">
+                <div class="form-group">
+                  <label><i class="las la-user"></i> Your Name</label>
+                  <input type="text" formControlName="postedBy" placeholder="Enter your name">
+                  <div *ngIf="commentForm.get('postedBy')?.invalid && commentForm.get('postedBy')?.touched" 
+                      class="error-message">
+                    Name is required
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label><i class="las la-comment"></i> Your Comment</label>
+                  <textarea formControlName="content" rows="5" placeholder="Write your comment here..."></textarea>
+                  <div *ngIf="commentForm.get('content')?.invalid && commentForm.get('content')?.touched" 
+                      class="error-message">
+                    Comment must be at least 3 characters
+                  </div>
+                  
+                  <!-- Toxicity warning message -->
+                  <div *ngIf="toxicityDetected" class="toxicity-warning">
+                    <i class="las la-exclamation-triangle"></i>
+                    <span>Your comment may contain inappropriate content. Please revise it before submitting.</span>
+                    <div class="toxicity-score" *ngIf="toxicityScore > 0">
+                      <div class="score-bar">
+                        <div class="score-fill" [style.width.%]="toxicityScore * 100"></div>
+                      </div>
+                      <span class="score-label">Toxicity Level: {{ (toxicityScore * 100).toFixed(0) }}%</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="submit-btn" [disabled]="commentForm.invalid || isSubmittingComment || isToxicityChecking">
+                  <span *ngIf="isSubmittingComment || isToxicityChecking" class="spinner"></span>
+                  <i class="las" [ngClass]="{'la-paper-plane': !isToxicityChecking, 'la-shield-check': isToxicityChecking}"></i>
+                  {{ isToxicityChecking ? 'CHECKING COMMENT...' : 'POST YOUR COMMENT' }}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+          <div class="sidebar">
+            <!-- Author Widget -->
+            <div class="widget author-widget">
+              <h3 class="widget-title">About Author</h3>
+              <div class="author-info">
+                <div class="author-avatar">
+                  <!-- Replace with author initials instead of image -->
+                  <div class="author-initials">{{ article.postedBy?.charAt(0) || 'A' }}</div>
+                </div>
+                <h4>{{ article.postedBy }}</h4>
+                <p>Legal expert and professional counselor with years of experience in providing legal advice.</p>
+                <div class="social-links">
+                  <a href="#"><i class="lab la-facebook-f"></i></a>
+                  <a href="#"><i class="lab la-twitter"></i></a>
+                  <a href="#"><i class="lab la-linkedin-in"></i></a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Related Articles Widget -->
+            <div class="widget related-articles">
+              <h3 class="widget-title">Related Blogs & Articles</h3>
+              <div class="article-list">
+                <a href="#" class="related-article">
+                  <div class="article-color-block"></div>
+                  <div class="article-info">
+                    <h4>Understanding Legal Contracts</h4>
+                    <p>May 15, 2023</p>
+                  </div>
+                </a>
+                <a href="#" class="related-article">
+                  <div class="article-color-block"></div>
+                  <div class="article-info">
+                    <h4>Corporate Law Essentials</h4>
+                    <p>June 3, 2023</p>
+                  </div>
+                </a>
+                <a href="#" class="related-article">
+                  <div class="article-color-block"></div>
+                  <div class="article-info">
+                    <h4>Legal Rights in Employment</h4>
+                    <p>July 12, 2023</p>
+                  </div>
+                </a>
+              </div>
+            </div>
+
+            <!-- Tags Widget -->
+            <div class="widget tags-widget">
+              <h3 class="widget-title">Popular Tags</h3>
+              <div class="tags-cloud">
+                <a href="#" class="tag">Legal</a>
+                <a href="#" class="tag">Law</a>
+                <a href="#" class="tag">Justice</a>
+                <a href="#" class="tag">Corporate</a>
+                <a href="#" class="tag">Employment</a>
+                <a href="#" class="tag">Rights</a>
+                <a href="#" class="tag">Contract</a>
+                <a href="#" class="tag">Advice</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading/Error State -->
+<ng-template #loadingOrError>
+  <div class="loading-error-container">
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="spinner-container">
+        <div class="spinner"></div>
+      </div>
+      <p>Loading article...</p>
+    </div>
+    <div *ngIf="!isLoading && errorMessage" class="error-state">
+      <i class="las la-exclamation-circle"></i>
+      <h3>Oops!</h3>
+      <p>{{ errorMessage }}</p>
+      <a routerLink="/blogs" class="return-link">Return to Blogs & Articles</a>
+    </div>
+  </div>
+</ng-template>
+
+  
+  
