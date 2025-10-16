@@ -1,0 +1,57 @@
+# Multi-stage build for Spring Boot application
+FROM maven:3.9.5-eclipse-temurin-17 AS build
+
+WORKDIR /app
+
+# Copy pom.xml and download dependencies (cached layer)
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# Copy source code and build
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine
+
+# Add metadata
+LABEL maintainer="lawconnect-team"
+LABEL version="1.0"
+LABEL description="LawConnect Backend API"
+
+# Create non-root user
+RUN addgroup -S spring && adduser -S spring -G spring
+
+# Set working directory
+WORKDIR /app
+
+# Install bash and netcat for waiting
+RUN apk add --no-cache bash netcat-openbsd
+
+# Copy jar from build stage
+ARG JAR_FILE=target/*.jar
+COPY --from=build /app/target/*.jar app.jar
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+echo "Waiting for MySQL..."\n\
+while ! nc -z mysql 3306; do\n\
+  sleep 1\n\
+done\n\
+echo "MySQL is up - starting application"\n\
+exec java $JAVA_OPTS -jar app.jar' > /app/start.sh && chmod +x /app/start.sh
+
+# Change ownership
+RUN chown -R spring:spring /app
+
+# Switch to non-root user
+USER spring:spring
+
+# Expose port
+EXPOSE 8080
+
+# JVM options for container
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
+
+# Run application with startup script
+ENTRYPOINT ["/app/start.sh"]
