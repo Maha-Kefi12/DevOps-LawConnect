@@ -11,7 +11,8 @@ RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
-
+RUN npm install
+RUN npm run build --prod
 # Build for production
 RUN npm run build --prod
 
