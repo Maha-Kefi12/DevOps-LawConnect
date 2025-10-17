@@ -1,0 +1,3 @@
+[submodule "lawapp"]
+	path = lawapp
+	url = https://github.com/Maha-Kefi12/lawapp.git
