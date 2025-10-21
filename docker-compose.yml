@@ -16,6 +16,10 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - lawconnect-network
+    extra_hosts:
+      - "slave1:192.168.56.20"
+      - "slave2:192.168.56.21"
+      - "master:192.168.56.10"
     command: --default-authentication-plugin=mysql_native_password
 
   # Spring Boot Backend
@@ -26,7 +30,7 @@ services:
     container_name: lawconnect-backend
     restart: always
     ports:
-      - "8085:8080"
+      - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_APPLICATION_NAME: lawconnect-backend
@@ -44,6 +48,10 @@ services:
       - mysql
     networks:
       - lawconnect-network
+    extra_hosts:
+      - "slave1:192.168.56.20"
+      - "slave2:192.168.56.21"
+      - "master:192.168.56.10"
 
   # Angular Frontend
   frontend:
@@ -61,6 +69,10 @@ services:
       - backend
     networks:
       - lawconnect-network
+    extra_hosts:
+      - "slave1:192.168.56.20"
+      - "slave2:192.168.56.21"
+      - "master:192.168.56.10"
 
 volumes:
   mysql_data:
