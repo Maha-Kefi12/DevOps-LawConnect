@@ -53,10 +53,42 @@ pipeline {
                         dir('lawapp') {
                             echo "Building Angular Frontend on Slave 2..."
                             sh '''
-                                npm ci --legacy-peer-deps
-                                npm run build --prod
+                                # Check if package-lock.json exists
+                                if [ ! -f "package-lock.json" ]; then
+                                    echo "⚠️ package-lock.json not found, using npm install instead"
+                                    npm install --legacy-peer-deps
+                                else
+                                    echo "✅ package-lock.json found, using npm ci"
+                                    npm ci --legacy-peer-deps
+                                fi
+                                
+                                # Build Angular app
+                                npm run build
+                                
+                                # Find where the build output is
+                                echo "=== Checking build output ==="
+                                ls -la
+                                
+                                if [ -d "dist" ]; then
+                                    echo "dist folder contents:"
+                                    ls -laR dist/
+                                else
+                                    echo "dist folder not found!"
+                                    echo "Available folders:"
+                                    find . -type d -name "dist" || true
+                                    exit 1
+                                fi
                             '''
-                            stash includes: 'dist/**', name: 'frontend-dist'
+                            // Stash the entire dist folder recursively
+                            script {
+                                // Check if dist exists before stashing
+                                if (fileExists('dist')) {
+                                    stash includes: 'dist/**/*', name: 'frontend-dist', allowEmpty: false
+                                    echo "✅ Frontend dist stashed successfully"
+                                } else {
+                                    error("❌ Frontend build failed - no dist folder found")
+                                }
+                            }
                         }
                     }
                 }
@@ -152,24 +184,39 @@ pipeline {
     
     post {
         always {
-            node('master') {
-                echo "Cleaning up workspace..."
-                cleanWs()
+            script {
+                if (env.NODE_NAME) {
+                    echo "Cleaning up workspace..."
+                    cleanWs()
+                }
             }
         }
         
         success {
-            node('master') {
-                echo "✅ Pipeline completed successfully!"
-                echo "Frontend: http://localhost"
-                echo "Backend: http://localhost:8085"
+            script {
+                node('master') {
+                    echo "✅ Pipeline completed successfully!"
+                    echo "Frontend: http://localhost"
+                    echo "Backend: http://localhost:8080"
+                }
             }
         }
         
         failure {
-            node('master') {
-                echo "❌ Pipeline failed!"
-                sh 'docker-compose logs --tail=50'
+            script {
+                node('master') {
+                    echo "❌ Pipeline failed!"
+                    sh '''
+                        # Check if docker-compose.yml exists
+                        if [ -f "docker-compose.yml" ]; then
+                            docker-compose logs --tail=50 || true
+                        else
+                            echo "docker-compose.yml not found in workspace"
+                            echo "Checking workspace contents:"
+                            ls -la || true
+                        fi
+                    '''
+                }
             }
         }
     }
