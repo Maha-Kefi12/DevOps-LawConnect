@@ -65,30 +65,42 @@ pipeline {
                                 # Build Angular app
                                 npm run build
                                 
-                                # Find where the build output is
-                                echo "=== Checking build output ==="
+                                # Check where files actually are
+                                echo "=== Current dir (lawapp) ==="
+                                pwd
                                 ls -la
                                 
-                                if [ -d "dist" ]; then
-                                    echo "dist folder contents:"
-                                    ls -laR dist/
-                                else
-                                    echo "dist folder not found!"
-                                    echo "Available folders:"
-                                    find . -type d -name "dist" || true
-                                    exit 1
-                                fi
+                                echo "=== Parent directory ==="
+                                cd ..
+                                pwd
+                                ls -la
+                                
+                                echo "=== Looking for dist recursively ==="
+                                find . -type d -name "dist" -o -type f -name "*.js" | grep -E "(main|polyfills|runtime)" | head -10
                             '''
-                            // Stash the entire dist folder recursively
-                            script {
-                                // Check if dist exists before stashing
+                        }
+                        
+                        // Check both locations
+                        script {
+                            // Check if dist is in lawapp/dist
+                            dir('lawapp') {
                                 if (fileExists('dist')) {
+                                    echo "✅ Found dist in lawapp/dist"
+                                    sh 'ls -laR dist/ | head -20'
                                     stash includes: 'dist/**/*', name: 'frontend-dist', allowEmpty: false
-                                    echo "✅ Frontend dist stashed successfully"
-                                } else {
-                                    error("❌ Frontend build failed - no dist folder found")
+                                    return
                                 }
                             }
+                            
+                            // Check if dist is in workspace root
+                            if (fileExists('dist')) {
+                                echo "✅ Found dist in workspace root"
+                                sh 'ls -laR dist/ | head -20'
+                                stash includes: 'dist/**/*', name: 'frontend-dist', allowEmpty: false
+                                return
+                            }
+                            
+                            error("❌ Cannot find dist folder anywhere!")
                         }
                     }
                 }
