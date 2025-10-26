@@ -146,25 +146,31 @@ pipeline {
                         
                         echo "Building Frontend Docker image on Slave 2..."
                         script {
-                            // Re-initialize the submodule on this slave
+                            // Clone the lawapp repo directly to get Dockerfile
                             sh '''
-                                cd /home/jenkins/workspace/CI-CD\ Claude
+                                cd "${WORKSPACE}"
                                 
-                                echo "=== Reinitializing submodule ==="
-                                git submodule update --init --recursive lawapp
+                                echo "=== Cloning lawapp repository ==="
+                                rm -rf lawapp-temp
+                                git clone https://github.com/Maha-Kefi12/lawapp.git lawapp-temp
                                 
-                                echo "=== Checking lawapp after submodule update ==="
+                                # Copy Dockerfile and nginx.conf to lawapp directory
+                                cp lawapp-temp/Dockerfile lawapp/
+                                cp lawapp-temp/nginx.conf lawapp/
+                                rm -rf lawapp-temp
+                                
+                                echo "=== Checking lawapp contents ==="
                                 ls -la lawapp/
                                 
-                                # Copy dist to lawapp
+                                # Copy dist to lawapp if needed
                                 if [ -d "dist" ]; then
-                                    cp -r dist lawapp/
+                                    cp -r dist lawapp/ || true
                                 fi
                             '''
                             
                             dir('lawapp') {
                                 sh '''
-                                    echo "=== Final check ==="
+                                    echo "=== Final check before build ==="
                                     ls -la
                                     
                                     if [ ! -f "Dockerfile" ]; then
@@ -200,12 +206,17 @@ pipeline {
             steps {
                 unstash 'source-code'
                 echo "Deploying full stack on Master..."
-                sh '''
+                sh """
                     # Stop existing containers
                     docker-compose down || true
                     
-                    # Pull latest images
-                    docker-compose pull
+                    # Pull the images we just built
+                    docker pull ${env.BACKEND_IMAGE}:${env.BUILD_NUMBER}
+                    docker pull ${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER}
+                    
+                    # Tag images for docker-compose
+                    docker tag ${env.BACKEND_IMAGE}:${env.BUILD_NUMBER} final-pipeline_backend:latest
+                    docker tag ${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER} final-pipeline_frontend:latest
                     
                     # Start all services
                     docker-compose up -d
@@ -215,7 +226,7 @@ pipeline {
                     
                     # Check status
                     docker-compose ps
-                '''
+                """
             }
         }
         
