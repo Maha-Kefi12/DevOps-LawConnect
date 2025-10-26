@@ -207,8 +207,11 @@ pipeline {
                 unstash 'source-code'
                 echo "Deploying full stack on Master..."
                 sh """
-                    # Stop existing containers
-                    docker-compose down || true
+                    # Stop and remove existing containers
+                    docker-compose down -v || true
+                    
+                    # Force remove any lingering containers
+                    docker rm -f lawconnect-mysql lawconnect-backend lawconnect-frontend || true
                     
                     # Pull the images we just built
                     docker pull ${env.BACKEND_IMAGE}:${env.BUILD_NUMBER}
