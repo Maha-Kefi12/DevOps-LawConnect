@@ -8,10 +8,11 @@ pipeline {
     
     environment {
         DOCKER_REGISTRY = 'docker.io'
+        DOCKER_HUB_USERNAME = '12mahe'  // Your Docker Hub username
         DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
         GIT_CREDENTIALS_ID = 'github-credentials'
-        BACKEND_IMAGE = 'lawconnect-backend'
-        FRONTEND_IMAGE = 'lawconnect-frontend'
+        BACKEND_IMAGE = "${DOCKER_HUB_USERNAME}/lawconnect-backend"
+        FRONTEND_IMAGE = "${DOCKER_HUB_USERNAME}/lawconnect-frontend"
         MYSQL_IMAGE = 'mysql:8.0'
     }
     
@@ -117,11 +118,21 @@ pipeline {
                         dir('LawConnectBackend') {
                             echo "Building Backend Docker image on Slave 1..."
                             script {
-                                def backendImage = docker.build("${env.BACKEND_IMAGE}:${env.BUILD_NUMBER}")
-                                docker.withRegistry("https://${env.DOCKER_REGISTRY}", env.DOCKER_CREDENTIALS_ID) {
-                                    backendImage.push("${env.BUILD_NUMBER}")
-                                    backendImage.push("latest")
+                                // Build with explicit tag including username
+                                sh """
+                                    docker build -t ${env.BACKEND_IMAGE}:${env.BUILD_NUMBER} .
+                                    docker tag ${env.BACKEND_IMAGE}:${env.BUILD_NUMBER} ${env.BACKEND_IMAGE}:latest
+                                """
+                                echo "Built image: ${env.BACKEND_IMAGE}:${env.BUILD_NUMBER}"
+                                
+                                // Push to registry
+                                docker.withRegistry("", env.DOCKER_CREDENTIALS_ID) {
+                                    sh """
+                                        docker push ${env.BACKEND_IMAGE}:${env.BUILD_NUMBER}
+                                        docker push ${env.BACKEND_IMAGE}:latest
+                                    """
                                 }
+                                echo "✅ Successfully pushed backend image to Docker Hub"
                             }
                         }
                     }
@@ -131,13 +142,51 @@ pipeline {
                     agent { label 'slave2' }
                     steps {
                         unstash 'source-code'
-                        dir('lawapp') {
-                            echo "Building Frontend Docker image on Slave 2..."
-                            script {
-                                def frontendImage = docker.build("${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER}")
-                                docker.withRegistry("https://${env.DOCKER_REGISTRY}", env.DOCKER_CREDENTIALS_ID) {
-                                    frontendImage.push("${env.BUILD_NUMBER}")
-                                    frontendImage.push("latest")
+                        unstash 'frontend-dist'
+                        
+                        echo "Building Frontend Docker image on Slave 2..."
+                        script {
+                            // Re-initialize the submodule on this slave
+                            sh '''
+                                cd /home/jenkins/workspace/CI-CD\ Claude
+                                
+                                echo "=== Reinitializing submodule ==="
+                                git submodule update --init --recursive lawapp
+                                
+                                echo "=== Checking lawapp after submodule update ==="
+                                ls -la lawapp/
+                                
+                                # Copy dist to lawapp
+                                if [ -d "dist" ]; then
+                                    cp -r dist lawapp/
+                                fi
+                            '''
+                            
+                            dir('lawapp') {
+                                sh '''
+                                    echo "=== Final check ==="
+                                    ls -la
+                                    
+                                    if [ ! -f "Dockerfile" ]; then
+                                        echo "ERROR: Still no Dockerfile!"
+                                        exit 1
+                                    fi
+                                    
+                                    echo "✅ Ready to build"
+                                '''
+                                
+                                // Build
+                                sh """
+                                    docker build -t ${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER} .
+                                    docker tag ${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER} ${env.FRONTEND_IMAGE}:latest
+                                """
+                                
+                                // Push
+                                docker.withRegistry("", env.DOCKER_CREDENTIALS_ID) {
+                                    sh """
+                                        docker push ${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER}
+                                        docker push ${env.FRONTEND_IMAGE}:latest
+                                    """
                                 }
                             }
                         }
